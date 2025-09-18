@@ -1,6 +1,25 @@
+/**
+ * Controlador de conversiones de unidades
+ * 
+ * Este archivo contiene toda la lógica para convertir diferentes tipos de unidades:
+ * - Tiempo (segundos, minutos, horas, días, meses, años)
+ * - Peso (gramos, kilogramos, libras, onzas, toneladas)
+ * - Temperatura (Celsius, Fahrenheit, Kelvin)
+ * - Moneda (usando API externa para tasas de cambio en tiempo real)
+ */
+
 const axios = require('axios');
 
-// Conversiones de tiempo
+// ============================================================================
+// CONFIGURACIONES DE CONVERSIÓN
+// ============================================================================
+
+/**
+ * Conversiones de tiempo
+ * 
+ * Objeto que contiene todas las funciones de conversión entre unidades de tiempo.
+ * Cada unidad tiene funciones para convertir a todas las demás unidades.
+ */
 const timeConversions = {
   segundos: {
     minutos: (value) => value / 60,
@@ -46,7 +65,12 @@ const timeConversions = {
   }
 };
 
-// Conversiones de peso
+/**
+ * Conversiones de peso
+ * 
+ * Objeto que contiene todas las funciones de conversión entre unidades de peso.
+ * Incluye conversiones métricas e imperiales comunes.
+ */
 const weightConversions = {
   gramos: {
     kilogramos: (value) => value / 1000,
@@ -78,7 +102,21 @@ const temperatureConversions = {
   }
 };
 
-// Controlador para conversión de tiempo
+// (Las conversiones de temperatura ya están definidas arriba en el código)
+
+// ============================================================================
+// FUNCIONES DEL CONTROLADOR
+// ============================================================================
+
+/**
+ * Controlador para conversión de tiempo
+ * 
+ * Maneja las peticiones POST para convertir unidades de tiempo.
+ * Valida los parámetros de entrada y realiza la conversión correspondiente.
+ * 
+ * @param {Object} req - Objeto de petición con body: {value, from, to}
+ * @param {Object} res - Objeto de respuesta
+ */
 const convertTime = (req, res) => {
   try {
     const { value, from, to } = req.body;
@@ -102,7 +140,15 @@ const convertTime = (req, res) => {
   }
 };
 
-// Controlador para conversión de peso
+/**
+ * Controlador para conversión de peso
+ * 
+ * Maneja las peticiones POST para convertir unidades de peso.
+ * Valida los parámetros de entrada y realiza la conversión correspondiente.
+ * 
+ * @param {Object} req - Objeto de petición con body: {value, from, to}
+ * @param {Object} res - Objeto de respuesta
+ */
 const convertWeight = (req, res) => {
   try {
     const { value, from, to } = req.body;
@@ -126,7 +172,15 @@ const convertWeight = (req, res) => {
   }
 };
 
-// Controlador para conversión de temperatura
+/**
+ * Controlador para conversión de temperatura
+ * 
+ * Maneja las peticiones POST para convertir unidades de temperatura.
+ * Soporta conversiones entre Celsius, Fahrenheit y Kelvin.
+ * 
+ * @param {Object} req - Objeto de petición con body: {value, from, to}
+ * @param {Object} res - Objeto de respuesta
+ */
 const convertTemperature = (req, res) => {
   try {
     const { value, from, to } = req.body;
@@ -150,12 +204,26 @@ const convertTemperature = (req, res) => {
   }
 };
 
-// Cache para tasas de cambio
+// ============================================================================
+// CONFIGURACIÓN DE MONEDA
+// ============================================================================
+
+/**
+ * Cache para tasas de cambio
+ * 
+ * Variables para almacenar en memoria las tasas de cambio y evitar
+ * peticiones excesivas a la API externa.
+ */
 let currencyRatesCache = null;
 let lastFetchTime = null;
 const CACHE_DURATION = 3600000; // 1 hora en milisegundos
 
-// Tasas de cambio fijas como respaldo
+/**
+ * Tasas de cambio fijas como respaldo
+ * 
+ * Se utilizan cuando la API externa no está disponible o falla.
+ * Estas tasas deben actualizarse periódicamente en producción.
+ */
 const fallbackRates = {
   USD: { EUR: 0.85, MXN: 17.5, CHF: 0.92 },
   EUR: { USD: 1.18, MXN: 20.6, CHF: 1.08 },
@@ -163,7 +231,14 @@ const fallbackRates = {
   CHF: { USD: 1.09, EUR: 0.93, MXN: 19.2 }
 };
 
-// Función para obtener tasas de cambio actualizadas
+/**
+ * Función para obtener tasas de cambio actualizadas
+ * 
+ * Realiza una petición a la API externa para obtener las tasas de cambio
+ * más recientes. Incluye manejo de errores y cache para optimizar rendimiento.
+ * 
+ * @returns {Object} Objeto con las tasas de cambio actualizadas
+ */
 const fetchCurrencyRates = async () => {
   try {
     // Usar API gratuita de exchangerate-api como ejemplo
@@ -202,7 +277,15 @@ const fetchCurrencyRates = async () => {
   }
 };
 
-// Controlador para obtener tasas de cambio
+/**
+ * Controlador para obtener tasas de cambio
+ * 
+ * Endpoint GET que devuelve las tasas de cambio actuales.
+ * Utiliza cache para evitar peticiones excesivas a la API externa.
+ * 
+ * @param {Object} req - Objeto de petición
+ * @param {Object} res - Objeto de respuesta con las tasas y timestamp
+ */
 const getCurrencyRates = async (req, res) => {
   try {
     const now = Date.now();
@@ -217,7 +300,15 @@ const getCurrencyRates = async (req, res) => {
   }
 };
 
-// Controlador para conversión de moneda
+/**
+ * Controlador para conversión de moneda
+ * 
+ * Maneja las peticiones POST para convertir entre diferentes monedas.
+ * Utiliza tasas de cambio en tiempo real y devuelve el resultado con metadatos.
+ * 
+ * @param {Object} req - Objeto de petición con body: {value, from, to}
+ * @param {Object} res - Objeto de respuesta con resultado, tasa y timestamp
+ */
 const convertCurrency = async (req, res) => {
   try {
     const { value, from, to } = req.body;
@@ -253,6 +344,20 @@ const convertCurrency = async (req, res) => {
   }
 };
 
+// ============================================================================
+// EXPORTACIÓN DE MÓDULOS
+// ============================================================================
+
+/**
+ * Exporta todas las funciones del controlador para ser utilizadas en las rutas.
+ * 
+ * Cada función maneja un tipo específico de conversión:
+ * - convertTime: Conversiones de tiempo
+ * - convertWeight: Conversiones de peso
+ * - convertTemperature: Conversiones de temperatura
+ * - convertCurrency: Conversiones de moneda
+ * - getCurrencyRates: Obtención de tasas de cambio
+ */
 module.exports = {
   convertTime,
   convertWeight,
